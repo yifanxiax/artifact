@@ -3,26 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yifan Xia | Creative Strategist</title>
+    <title>Yifan Xia | Designer & Strategist</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #ffffff;
-        }
-        canvas {
-            display: block;
-        }
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #ffffff; cursor: grab; }
+        body:active { cursor: grabbing; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
 <script>
 /**
- * YIFAN XIA - REFINED LIVING RESUME
- * Focus: Subtlety, Fluidity, and Minimalist Strategy
+ * YIFAN XIA - TACTILE RESUME
+ * Refined for clarity, larger particles, and draggable elements.
  */
 
 let particles = [];
@@ -43,12 +37,12 @@ const phrases = [
 function setup() {
   createCanvas(windowWidth, windowHeight);
   
-  // Create very sparse background particles
-  for (let i = 0; i < 40; i++) {
+  // Larger, bold background particles
+  for (let i = 0; i < 35; i++) {
     particles.push(new Particle());
   }
   
-  // Initialize floating text with very slow drift
+  // Draggable text nodes
   for (let i = 0; i < phrases.length; i++) {
     nodes.push(new FloatingNode(phrases[i]));
   }
@@ -57,35 +51,31 @@ function setup() {
 }
 
 function draw() {
-  // Ultra-light trail effect for smoothness
-  background(255, 255, 255, 25); 
-  
-  // 1. Mouse Trail Effect
+  background(255); // Full white background, no transparency
+
+  // 1. Interactive Mouse Trail
   if (mouseX !== 0 && mouseY !== 0) {
     trail.push(new TrailPoint(mouseX, mouseY));
   }
-  
   for (let i = trail.length - 1; i >= 0; i--) {
     trail[i].update();
     trail[i].display();
-    if (trail[i].finished()) {
-      trail.splice(i, 1);
-    }
+    if (trail[i].finished()) trail.splice(i, 1);
   }
 
-  // 2. Background Particles
+  // 2. Large Particles (Drifting)
   particles.forEach(p => {
     p.update();
     p.display();
   });
   
-  // 3. Interactive Floating Text
+  // 3. Draggable Text Nodes
   nodes.forEach(n => {
     n.update();
     n.display();
   });
 
-  // 4. Centered Identity
+  // 4. Identity Header
   drawIdentity();
 }
 
@@ -93,29 +83,43 @@ function drawIdentity() {
   push();
   textAlign(CENTER, CENTER);
   noStroke();
-  
-  fill(40);
+  fill(30);
   textSize(32);
   textStyle(BOLD);
   text("YIFAN XIA", width / 2, height / 2 - 15);
   
-  fill(140);
+  fill(120);
   textSize(13);
   textStyle(NORMAL);
-  // Manual letter spacing for "calm" feel
-  let spacing = "D E S I G N E R  +  S T R A T E G I S T";
-  text(spacing, width / 2, height / 2 + 20);
+  text("D E S I G N E R  +  S T R A T E G I S T", width / 2, height / 2 + 20);
   pop();
+}
+
+// Interaction Logic
+function mousePressed() {
+  for (let n of nodes) {
+    if (n.isMouseOver()) {
+      n.dragging = true;
+      n.offsetX = n.pos.x - mouseX;
+      n.offsetY = n.pos.y - mouseY;
+      break; // Only drag one at a time
+    }
+  }
+}
+
+function mouseReleased() {
+  for (let n of nodes) {
+    n.dragging = false;
+  }
 }
 
 class Particle {
   constructor() {
     this.pos = createVector(random(width), random(height));
-    // Reduced velocity for "water" feel
-    this.vel = createVector(random(-0.15, 0.15), random(-0.15, 0.15));
-    this.size = random(1.5, 4);
+    this.vel = createVector(random(-0.1, 0.1), random(-0.1, 0.1));
+    this.size = random(4, 10); // Increased size as requested
     this.color = color(random(palette));
-    this.color.setAlpha(80);
+    this.color.setAlpha(100);
   }
 
   update() {
@@ -134,39 +138,51 @@ class Particle {
 class FloatingNode {
   constructor(txt) {
     this.txt = txt;
-    this.pos = createVector(random(width), random(height));
-    this.vel = createVector(random(-0.08, 0.08), random(-0.08, 0.08));
-    this.alpha = 0;
+    this.pos = createVector(random(100, width-100), random(100, height-100));
+    this.vel = createVector(random(-0.05, 0.05), random(-0.05, 0.05));
     this.noiseOffset = random(1000);
+    this.dragging = false;
+    this.offsetX = 0;
+    this.offsetY = 0;
+    this.w = textWidth(txt) + 40; // Hitbox width
+    this.h = 30; // Hitbox height
+  }
+
+  isMouseOver() {
+    return (mouseX > this.pos.x - this.w/2 && mouseX < this.pos.x + this.w/2 &&
+            mouseY > this.pos.y - this.h/2 && mouseY < this.pos.y + this.h/2);
   }
 
   update() {
-    // Liquid drift using perlin noise
-    let n = noise(this.noiseOffset + frameCount * 0.002);
-    this.pos.x += map(n, 0, 1, -0.2, 0.2);
-    this.pos.add(this.vel);
-    
-    if (this.pos.x < -150) this.pos.x = width + 150;
-    if (this.pos.x > width + 150) this.pos.x = -150;
-    if (this.pos.y < -50) this.pos.y = height + 50;
-    if (this.pos.y > height + 50) this.pos.y = -50;
-
-    // Subtler mouse interaction
-    let d = dist(this.pos.x, this.pos.y, mouseX, mouseY);
-    if (d < 150) {
-      this.pos.x += (this.pos.x - mouseX) * 0.005;
-      this.pos.y += (this.pos.y - mouseY) * 0.005;
+    if (this.dragging) {
+      this.pos.x = mouseX + this.offsetX;
+      this.pos.y = mouseY + this.offsetY;
+    } else {
+      // Gentle liquid drift
+      let n = noise(this.noiseOffset + frameCount * 0.001);
+      this.pos.x += map(n, 0, 1, -0.15, 0.15);
+      this.pos.add(this.vel);
+      
+      // Screen wrap
+      if (this.pos.x < -150) this.pos.x = width + 150;
+      if (this.pos.x > width + 150) this.pos.x = -150;
+      if (this.pos.y < -50) this.pos.y = height + 50;
+      if (this.pos.y > height + 50) this.pos.y = -50;
     }
-    
-    if (this.alpha < 160) this.alpha += 1;
   }
 
   display() {
     push();
-    fill(80, this.alpha);
-    noStroke();
     textAlign(CENTER, CENTER);
-    textSize(15);
+    if (this.dragging) {
+      fill(palette[0]); // Highlight in blue when dragged
+    } else if (this.isMouseOver()) {
+      fill(0);
+    } else {
+      fill(100);
+    }
+    noStroke();
+    textSize(16);
     text(this.txt, this.pos.x, this.pos.y);
     pop();
   }
@@ -175,25 +191,23 @@ class FloatingNode {
 class TrailPoint {
   constructor(x, y) {
     this.pos = createVector(x, y);
-    this.vel = createVector(random(-0.2, 0.2), random(-0.2, 0.2));
-    this.alpha = 200;
+    this.vel = createVector(random(-0.1, 0.1), random(-0.1, 0.1));
+    this.alpha = 180;
     this.color = color(random(palette));
   }
 
   update() {
     this.pos.add(this.vel);
-    this.alpha -= 3; // Fades out slowly
+    this.alpha -= 4;
   }
 
-  finished() {
-    return this.alpha < 0;
-  }
+  finished() { return this.alpha < 0; }
 
   display() {
     noStroke();
     this.color.setAlpha(this.alpha);
     fill(this.color);
-    ellipse(this.pos.x, this.pos.y, 3);
+    ellipse(this.pos.x, this.pos.y, 4);
   }
 }
 
