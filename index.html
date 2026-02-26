@@ -11,7 +11,6 @@
             padding: 0;
             overflow: hidden;
             background-color: #ffffff;
-            cursor: crosshair;
         }
         canvas {
             display: block;
@@ -22,12 +21,13 @@
 
 <script>
 /**
- * YIFAN XIA - LIVING RESUME
- * A blend of Design (Parsons/CSM) and Strategy (Vanderbilt)
+ * YIFAN XIA - REFINED LIVING RESUME
+ * Focus: Subtlety, Fluidity, and Minimalist Strategy
  */
 
 let particles = [];
 let nodes = [];
+let trail = [];
 const palette = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
 const phrases = [
   'Parsons BFA', 
@@ -43,12 +43,12 @@ const phrases = [
 function setup() {
   createCanvas(windowWidth, windowHeight);
   
-  // Initialize background drift particles
-  for (let i = 0; i < 80; i++) {
+  // Create very sparse background particles
+  for (let i = 0; i < 40; i++) {
     particles.push(new Particle());
   }
   
-  // Initialize floating resume facts
+  // Initialize floating text with very slow drift
   for (let i = 0; i < phrases.length; i++) {
     nodes.push(new FloatingNode(phrases[i]));
   }
@@ -57,68 +57,71 @@ function setup() {
 }
 
 function draw() {
-  background(255, 255, 255, 100); // Slight trail for "living" feel
+  // Ultra-light trail effect for smoothness
+  background(255, 255, 255, 25); 
   
-  // Draw background particles
+  // 1. Mouse Trail Effect
+  if (mouseX !== 0 && mouseY !== 0) {
+    trail.push(new TrailPoint(mouseX, mouseY));
+  }
+  
+  for (let i = trail.length - 1; i >= 0; i--) {
+    trail[i].update();
+    trail[i].display();
+    if (trail[i].finished()) {
+      trail.splice(i, 1);
+    }
+  }
+
+  // 2. Background Particles
   particles.forEach(p => {
     p.update();
     p.display();
   });
   
-  // Draw interactive text nodes
+  // 3. Interactive Floating Text
   nodes.forEach(n => {
     n.update();
     n.display();
   });
 
-  // Stationary Header: Name and Primary Title
-  drawHeader();
+  // 4. Centered Identity
+  drawIdentity();
 }
 
-function drawHeader() {
+function drawIdentity() {
   push();
   textAlign(CENTER, CENTER);
   noStroke();
   
-  // YIFAN XIA [Source 1]
-  fill(30);
-  textSize(36);
+  fill(40);
+  textSize(32);
   textStyle(BOLD);
   text("YIFAN XIA", width / 2, height / 2 - 15);
   
-  // Subtitle
-  fill(100);
-  textSize(14);
+  fill(140);
+  textSize(13);
   textStyle(NORMAL);
-  letterSpacing(3);
-  text("DESIGNER + STRATEGIST", width / 2, height / 2 + 25);
+  // Manual letter spacing for "calm" feel
+  let spacing = "D E S I G N E R  +  S T R A T E G I S T";
+  text(spacing, width / 2, height / 2 + 20);
   pop();
 }
 
 class Particle {
   constructor() {
     this.pos = createVector(random(width), random(height));
-    this.vel = createVector(random(-0.3, 0.3), random(-0.3, 0.3));
-    this.size = random(2, 5);
+    // Reduced velocity for "water" feel
+    this.vel = createVector(random(-0.15, 0.15), random(-0.15, 0.15));
+    this.size = random(1.5, 4);
     this.color = color(random(palette));
-    this.color.setAlpha(120);
+    this.color.setAlpha(80);
   }
 
   update() {
     this.pos.add(this.vel);
-    
-    // Gentle bounce
     if (this.pos.x < 0 || this.pos.x > width) this.vel.x *= -1;
     if (this.pos.y < 0 || this.pos.y > height) this.vel.y *= -1;
-    
-    // Reaction to mouse
-    let mouse = createVector(mouseX, mouseY);
-    let d = dist(this.pos.x, this.pos.y, mouse.x, mouse.y);
-    if (d < 100) {
-      let flee = p5.Vector.sub(this.pos, mouse);
-      flee.setMag(0.5);
-      this.pos.add(flee);
-    }
   }
 
   display() {
@@ -132,51 +135,70 @@ class FloatingNode {
   constructor(txt) {
     this.txt = txt;
     this.pos = createVector(random(width), random(height));
-    this.vel = createVector(random(-0.2, 0.2), random(-0.2, 0.2));
+    this.vel = createVector(random(-0.08, 0.08), random(-0.08, 0.08));
     this.alpha = 0;
-    this.targetAlpha = 200;
+    this.noiseOffset = random(1000);
   }
 
   update() {
+    // Liquid drift using perlin noise
+    let n = noise(this.noiseOffset + frameCount * 0.002);
+    this.pos.x += map(n, 0, 1, -0.2, 0.2);
     this.pos.add(this.vel);
     
-    // Wrap around edges softly
     if (this.pos.x < -150) this.pos.x = width + 150;
     if (this.pos.x > width + 150) this.pos.x = -150;
     if (this.pos.y < -50) this.pos.y = height + 50;
     if (this.pos.y > height + 50) this.pos.y = -50;
 
-    // Mouse proximity "drift"
+    // Subtler mouse interaction
     let d = dist(this.pos.x, this.pos.y, mouseX, mouseY);
-    if (d < 200) {
-      this.pos.x += (this.pos.x - mouseX) * 0.02;
-      this.pos.y += (this.pos.y - mouseY) * 0.02;
+    if (d < 150) {
+      this.pos.x += (this.pos.x - mouseX) * 0.005;
+      this.pos.y += (this.pos.y - mouseY) * 0.005;
     }
     
-    // Fade in effect
-    if (this.alpha < this.targetAlpha) this.alpha += 2;
+    if (this.alpha < 160) this.alpha += 1;
   }
 
   display() {
     push();
-    fill(60, this.alpha);
+    fill(80, this.alpha);
     noStroke();
     textAlign(CENTER, CENTER);
-    textSize(16);
+    textSize(15);
     text(this.txt, this.pos.x, this.pos.y);
     pop();
   }
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+class TrailPoint {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.vel = createVector(random(-0.2, 0.2), random(-0.2, 0.2));
+    this.alpha = 200;
+    this.color = color(random(palette));
+  }
+
+  update() {
+    this.pos.add(this.vel);
+    this.alpha -= 3; // Fades out slowly
+  }
+
+  finished() {
+    return this.alpha < 0;
+  }
+
+  display() {
+    noStroke();
+    this.color.setAlpha(this.alpha);
+    fill(this.color);
+    ellipse(this.pos.x, this.pos.y, 3);
+  }
 }
 
-// Custom letter spacing helper for the subtitle
-function letterSpacing(amt) {
-  if (drawingContext.canvas) {
-    drawingContext.letterSpacing = amt + 'px';
-  }
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
 </script>
 
