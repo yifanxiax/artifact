@@ -15,13 +15,12 @@
 
 <script>
 /**
- * YIFAN XIA - TACTILE RESUME
- * Refined for clarity, larger particles, and draggable elements.
+ * YIFAN XIA - REFINED INTERACTIVE RESUME
+ * Clean, trail-free, and fully draggable.
  */
 
 let particles = [];
 let nodes = [];
-let trail = [];
 const palette = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
 const phrases = [
   'Parsons BFA', 
@@ -37,12 +36,12 @@ const phrases = [
 function setup() {
   createCanvas(windowWidth, windowHeight);
   
-  // Larger, bold background particles
-  for (let i = 0; i < 35; i++) {
+  // Create background drift particles (Size 4-10)
+  for (let i = 0; i < 40; i++) {
     particles.push(new Particle());
   }
   
-  // Draggable text nodes
+  // Initialize draggable phrases
   for (let i = 0; i < phrases.length; i++) {
     nodes.push(new FloatingNode(phrases[i]));
   }
@@ -51,31 +50,21 @@ function setup() {
 }
 
 function draw() {
-  background(255); // Full white background, no transparency
+  background(255); // Absolute white background every frame
 
-  // 1. Interactive Mouse Trail
-  if (mouseX !== 0 && mouseY !== 0) {
-    trail.push(new TrailPoint(mouseX, mouseY));
-  }
-  for (let i = trail.length - 1; i >= 0; i--) {
-    trail[i].update();
-    trail[i].display();
-    if (trail[i].finished()) trail.splice(i, 1);
-  }
-
-  // 2. Large Particles (Drifting)
+  // 1. Background Particles
   particles.forEach(p => {
     p.update();
     p.display();
   });
   
-  // 3. Draggable Text Nodes
+  // 2. Interactive Text Nodes
   nodes.forEach(n => {
     n.update();
     n.display();
   });
 
-  // 4. Identity Header
+  // 3. Static Center Header
   drawIdentity();
 }
 
@@ -88,38 +77,37 @@ function drawIdentity() {
   textStyle(BOLD);
   text("YIFAN XIA", width / 2, height / 2 - 15);
   
-  fill(120);
+  fill(150);
   textSize(13);
   textStyle(NORMAL);
   text("D E S I G N E R  +  S T R A T E G I S T", width / 2, height / 2 + 20);
   pop();
 }
 
-// Interaction Logic
+// Fixed hitbox dragging logic
 function mousePressed() {
-  for (let n of nodes) {
-    if (n.isMouseOver()) {
-      n.dragging = true;
-      n.offsetX = n.pos.x - mouseX;
-      n.offsetY = n.pos.y - mouseY;
-      break; // Only drag one at a time
+  // Check from top to bottom (last drawn to first)
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    if (nodes[i].isMouseOver()) {
+      nodes[i].dragging = true;
+      nodes[i].offsetX = nodes[i].pos.x - mouseX;
+      nodes[i].offsetY = nodes[i].pos.y - mouseY;
+      break; 
     }
   }
 }
 
 function mouseReleased() {
-  for (let n of nodes) {
-    n.dragging = false;
-  }
+  nodes.forEach(n => n.dragging = false);
 }
 
 class Particle {
   constructor() {
     this.pos = createVector(random(width), random(height));
-    this.vel = createVector(random(-0.1, 0.1), random(-0.1, 0.1));
-    this.size = random(4, 10); // Increased size as requested
+    this.vel = createVector(random(-0.12, 0.12), random(-0.12, 0.12));
+    this.size = random(4, 10); 
     this.color = color(random(palette));
-    this.color.setAlpha(100);
+    this.color.setAlpha(90);
   }
 
   update() {
@@ -138,19 +126,19 @@ class Particle {
 class FloatingNode {
   constructor(txt) {
     this.txt = txt;
-    this.pos = createVector(random(100, width-100), random(100, height-100));
-    this.vel = createVector(random(-0.05, 0.05), random(-0.05, 0.05));
+    this.pos = createVector(random(150, width-150), random(150, height-150));
+    this.vel = createVector(random(-0.06, 0.06), random(-0.06, 0.06));
     this.noiseOffset = random(1000);
     this.dragging = false;
     this.offsetX = 0;
     this.offsetY = 0;
-    this.w = textWidth(txt) + 40; // Hitbox width
-    this.h = 30; // Hitbox height
+    this.hitboxW = 120; // Fixed 120px hitbox as requested
+    this.hitboxH = 40; 
   }
 
   isMouseOver() {
-    return (mouseX > this.pos.x - this.w/2 && mouseX < this.pos.x + this.w/2 &&
-            mouseY > this.pos.y - this.h/2 && mouseY < this.pos.y + this.h/2);
+    return (mouseX > this.pos.x - this.hitboxW/2 && mouseX < this.pos.x + this.hitboxW/2 &&
+            mouseY > this.pos.y - this.hitboxH/2 && mouseY < this.pos.y + this.hitboxH/2);
   }
 
   update() {
@@ -158,12 +146,11 @@ class FloatingNode {
       this.pos.x = mouseX + this.offsetX;
       this.pos.y = mouseY + this.offsetY;
     } else {
-      // Gentle liquid drift
       let n = noise(this.noiseOffset + frameCount * 0.001);
-      this.pos.x += map(n, 0, 1, -0.15, 0.15);
+      this.pos.x += map(n, 0, 1, -0.1, 0.1);
       this.pos.add(this.vel);
       
-      // Screen wrap
+      // Gentle screen wrap
       if (this.pos.x < -150) this.pos.x = width + 150;
       if (this.pos.x > width + 150) this.pos.x = -150;
       if (this.pos.y < -50) this.pos.y = height + 50;
@@ -174,40 +161,19 @@ class FloatingNode {
   display() {
     push();
     textAlign(CENTER, CENTER);
-    if (this.dragging) {
-      fill(palette[0]); // Highlight in blue when dragged
-    } else if (this.isMouseOver()) {
-      fill(0);
-    } else {
-      fill(100);
-    }
     noStroke();
+    
+    if (this.dragging) {
+      fill(palette[0]); // Bright Google Blue when held
+    } else if (this.isMouseOver()) {
+      fill(0); // Sharp black on hover
+    } else {
+      fill(110); // Calm grey for drift
+    }
+    
     textSize(16);
     text(this.txt, this.pos.x, this.pos.y);
     pop();
-  }
-}
-
-class TrailPoint {
-  constructor(x, y) {
-    this.pos = createVector(x, y);
-    this.vel = createVector(random(-0.1, 0.1), random(-0.1, 0.1));
-    this.alpha = 180;
-    this.color = color(random(palette));
-  }
-
-  update() {
-    this.pos.add(this.vel);
-    this.alpha -= 4;
-  }
-
-  finished() { return this.alpha < 0; }
-
-  display() {
-    noStroke();
-    this.color.setAlpha(this.alpha);
-    fill(this.color);
-    ellipse(this.pos.x, this.pos.y, 4);
   }
 }
 
