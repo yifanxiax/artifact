@@ -12,9 +12,13 @@
             overflow: hidden; 
             background-color: #ffffff; 
         }
-        canvas { display: block; }
+        canvas { 
+            display: block; 
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
 
-        /* Enhanced absolute positioned contact link */
         #contact-link {
             position: absolute;
             bottom: 40px;
@@ -22,15 +26,15 @@
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 11px;
             letter-spacing: 3px;
-            color: #282828; /* Matched to header */
+            color: #282828; 
             text-decoration: none;
             text-transform: uppercase;
             transition: color 0.3s ease;
-            z-index: 999; /* Ensure it stays on top */
-            pointer-events: auto; /* Force clickability over canvas */
+            z-index: 999; 
+            /* This remains clickable because canvas will have pointer-events: none */
         }
         #contact-link:hover {
-            color: #4285F4; /* Google Blue */
+            color: #4285F4; 
         }
     </style>
 </head>
@@ -40,8 +44,8 @@
 
 <script>
 /**
- * YIFAN XIA - DEFINITIVE EDITION
- * Clean canvas, draggable nodes, and high-priority contact link.
+ * YIFAN XIA - FINAL VERSION
+ * Transparent interaction layer with pointer-pass-through for HTML links.
  */
 
 let particles = [];
@@ -60,8 +64,11 @@ const phrases = [
 ];
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  let canvas = createCanvas(windowWidth, windowHeight);
   
+  // Pass clicks through canvas to the HTML link underneath
+  canvas.elt.style.pointerEvents = 'none';
+
   for (let i = 0; i < 40; i++) {
     particles.push(new Particle());
   }
@@ -76,7 +83,7 @@ function setup() {
 function draw() {
   background(255); 
 
-  handleCursor();
+  handleCursorStyling();
 
   // Mouse Trail logic
   if (mouseX !== pmouseX || mouseY !== pmouseY) {
@@ -106,12 +113,10 @@ function draw() {
   drawIdentity();
 }
 
-function handleCursor() {
-  // Check if hovering over center identity area
+function handleCursorStyling() {
   let overCenter = (mouseX > width/2 - 150 && mouseX < width/2 + 150 &&
                     mouseY > height/2 - 40 && mouseY < height/2 + 40);
   
-  // Check if hovering over draggable node
   let overNode = false;
   for (let n of nodes) {
     if (n.isMouseOver()) {
@@ -120,12 +125,13 @@ function handleCursor() {
     }
   }
 
+  // Note: Since pointer-events: none is on the canvas, we set cursor on the body
   if (overCenter) {
-    cursor(ARROW);
+    document.body.style.cursor = 'default';
   } else if (overNode || mouseIsPressed) {
-    cursor('grabbing');
+    document.body.style.cursor = 'grabbing';
   } else {
-    cursor('grab');
+    document.body.style.cursor = 'grab';
   }
 }
 
