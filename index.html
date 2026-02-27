@@ -11,43 +11,24 @@
             padding: 0; 
             overflow: hidden; 
             background-color: #ffffff; 
+            cursor: grab;
         }
-        canvas { 
-            display: block; 
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        #contact-link {
-            position: absolute;
-            bottom: 40px;
-            right: 40px;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 11px;
-            letter-spacing: 3px;
-            color: #282828; 
-            text-decoration: none;
-            text-transform: uppercase;
-            transition: color 0.3s ease;
-            z-index: 999; 
-            pointer-events: auto; 
-        }
-        #contact-link:hover { color: #4285F4; }
+        body:active { cursor: grabbing; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
-<a href="mailto:yifan.xia@vanderbilt.edu" id="contact-link">CONTACT &rarr;</a>
-
 <script>
 /**
- * YIFAN XIA - DEFINITIVE EDITION WITH CLICK BURSTS
+ * YIFAN XIA - CANVAS INTEGRATED EDITION
+ * No HTML elements, everything rendered on canvas.
  */
 
 let driftParticles = [];
 let nodes = [];
 let mouseTrail = [];
-let clickBursts = []; // Array for click feedback
+let clickBursts = [];
 let colorIndex = 0;
 const palette = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
 const phrases = [
@@ -61,8 +42,7 @@ const phrases = [
 ];
 
 function setup() {
-  let canvas = createCanvas(windowWidth, windowHeight);
-  canvas.elt.style.pointerEvents = 'none';
+  createCanvas(windowWidth, windowHeight);
 
   for (let i = 0; i < 40; i++) {
     driftParticles.push(new DriftParticle());
@@ -80,7 +60,7 @@ function draw() {
 
   handleCursorStyling();
 
-  // 1. Mouse Trail (Passive movement)
+  // 1. Mouse Trail
   if (mouseX !== pmouseX || mouseY !== pmouseY) {
     let activeColor = palette[colorIndex % palette.length];
     mouseTrail.push(new TrailPoint(mouseX, mouseY, activeColor));
@@ -88,7 +68,7 @@ function draw() {
   }
   updateAndDisplay(mouseTrail, 30);
 
-  // 2. Click Bursts (Active feedback)
+  // 2. Click Bursts
   updateAndDisplay(clickBursts, 100);
 
   // 3. Background Drift
@@ -103,10 +83,11 @@ function draw() {
     n.display();
   });
 
+  // 5. Static Interface Elements
   drawIdentity();
+  drawContact();
 }
 
-// Utility to handle temporary arrays
 function updateAndDisplay(arr, max) {
   for (let i = arr.length - 1; i >= 0; i--) {
     arr[i].update();
@@ -127,11 +108,11 @@ function handleCursorStyling() {
   }
 
   if (overCenter) {
-    document.body.style.cursor = 'default';
+    cursor(ARROW);
   } else if (overNode || mouseIsPressed) {
-    document.body.style.cursor = 'grabbing';
+    cursor('grabbing');
   } else {
-    document.body.style.cursor = 'grab';
+    cursor('grab');
   }
 }
 
@@ -143,10 +124,25 @@ function drawIdentity() {
   textSize(32);
   textStyle(BOLD);
   text("YIFAN XIA", width / 2, height / 2 - 15);
+  
   fill(160);
   textSize(13);
   textStyle(NORMAL);
+  // Manual spacing for subtitle
   text("D E S I G N E R  +  S T R A T E G I S T", width / 2, height / 2 + 20);
+  pop();
+}
+
+function drawContact() {
+  push();
+  textAlign(RIGHT, BOTTOM);
+  noStroke();
+  fill(40); // Matches header color #282828
+  textSize(11);
+  textStyle(NORMAL);
+  // Manual spacing for email to match subtitle style
+  let email = "Y I F A N . X I A @ V A N D E R B I L T . E D U";
+  text(email, width - 40, height - 40);
   pop();
 }
 
@@ -162,7 +158,6 @@ function mousePressed() {
     }
   }
 
-  // If clicked on canvas background, spawn burst
   if (!hitAny) {
     for (let i = 0; i < 8; i++) {
       let col = palette[Math.floor(random(palette.length))];
@@ -257,15 +252,15 @@ class TrailPoint {
 class BurstParticle {
   constructor(x, y, col) {
     this.pos = createVector(x, y);
-    this.vel = p5.Vector.random2D().mult(random(2, 5)); // Explode outward
+    this.vel = p5.Vector.random2D().mult(random(2, 5));
     this.baseColor = color(col);
     this.alpha = 255;
     this.size = random(3, 6);
   }
   update() {
     this.pos.add(this.vel);
-    this.vel.mult(0.95); // Friction/Slow down
-    this.alpha -= 10; // Rapid fade (~0.5s)
+    this.vel.mult(0.95);
+    this.alpha -= 10;
     this.size -= 0.15;
   }
   isDead() { return this.alpha <= 0 || this.size <= 0; }
