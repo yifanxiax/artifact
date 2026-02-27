@@ -11,12 +11,10 @@
             padding: 0; 
             overflow: hidden; 
             background-color: #ffffff; 
-            cursor: grab; 
         }
-        body:active { cursor: grabbing; }
         canvas { display: block; }
 
-        /* Absolute positioned contact link */
+        /* Enhanced absolute positioned contact link */
         #contact-link {
             position: absolute;
             bottom: 40px;
@@ -24,14 +22,15 @@
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 11px;
             letter-spacing: 3px;
-            color: #999999;
+            color: #282828; /* Matched to header */
             text-decoration: none;
             text-transform: uppercase;
             transition: color 0.3s ease;
-            z-index: 100;
+            z-index: 999; /* Ensure it stays on top */
+            pointer-events: auto; /* Force clickability over canvas */
         }
         #contact-link:hover {
-            color: #4285F4; /* Google Blue highlight */
+            color: #4285F4; /* Google Blue */
         }
     </style>
 </head>
@@ -41,8 +40,8 @@
 
 <script>
 /**
- * YIFAN XIA - LIVING RESUME
- * Clean White / No Motion Blur / Draggable Nodes / Fading Mouse Trail
+ * YIFAN XIA - DEFINITIVE EDITION
+ * Clean canvas, draggable nodes, and high-priority contact link.
  */
 
 let particles = [];
@@ -63,12 +62,10 @@ const phrases = [
 function setup() {
   createCanvas(windowWidth, windowHeight);
   
-  // Create background drift particles (Size 4-10)
   for (let i = 0; i < 40; i++) {
     particles.push(new Particle());
   }
   
-  // Initialize draggable phrases
   for (let i = 0; i < phrases.length; i++) {
     nodes.push(new FloatingNode(phrases[i]));
   }
@@ -77,9 +74,11 @@ function setup() {
 }
 
 function draw() {
-  background(255); // Solid white - no motion blur
+  background(255); 
 
-  // 1. Manage Mouse Trail (Max 30 points)
+  handleCursor();
+
+  // Mouse Trail logic
   if (mouseX !== pmouseX || mouseY !== pmouseY) {
     let activeColor = palette[colorIndex % palette.length];
     mouseTrail.push(new TrailPoint(mouseX, mouseY, activeColor));
@@ -94,20 +93,40 @@ function draw() {
     }
   }
 
-  // 2. Background Particles
   particles.forEach(p => {
     p.update();
     p.display();
   });
   
-  // 3. Draggable Resume Nodes
   nodes.forEach(n => {
     n.update();
     n.display();
   });
 
-  // 4. Center Identity
   drawIdentity();
+}
+
+function handleCursor() {
+  // Check if hovering over center identity area
+  let overCenter = (mouseX > width/2 - 150 && mouseX < width/2 + 150 &&
+                    mouseY > height/2 - 40 && mouseY < height/2 + 40);
+  
+  // Check if hovering over draggable node
+  let overNode = false;
+  for (let n of nodes) {
+    if (n.isMouseOver()) {
+      overNode = true;
+      break;
+    }
+  }
+
+  if (overCenter) {
+    cursor(ARROW);
+  } else if (overNode || mouseIsPressed) {
+    cursor('grabbing');
+  } else {
+    cursor('grab');
+  }
 }
 
 function drawIdentity() {
@@ -122,14 +141,11 @@ function drawIdentity() {
   fill(160);
   textSize(13);
   textStyle(NORMAL);
-  // Spaced subtitle styling
-  let spacing = "D E S I G N E R  +  S T R A T E G I S T";
-  text(spacing, width / 2, height / 2 + 20);
+  text("D E S I G N E R  +  S T R A T E G I S T", width / 2, height / 2 + 20);
   pop();
 }
 
 function mousePressed() {
-  // Check nodes from top to bottom
   for (let i = nodes.length - 1; i >= 0; i--) {
     if (nodes[i].isMouseOver()) {
       nodes[i].dragging = true;
@@ -175,7 +191,7 @@ class FloatingNode {
     this.dragging = false;
     this.offsetX = 0;
     this.offsetY = 0;
-    this.hitboxW = 120; // Fixed hitbox for reliability
+    this.hitboxW = 120; 
     this.hitboxH = 40; 
   }
 
@@ -204,15 +220,9 @@ class FloatingNode {
     push();
     textAlign(CENTER, CENTER);
     noStroke();
-    
-    if (this.dragging) {
-      fill(palette[0]); // Interaction feedback
-    } else if (this.isMouseOver()) {
-      fill(0);
-    } else {
-      fill(120);
-    }
-    
+    if (this.dragging) fill(palette[0]);
+    else if (this.isMouseOver()) fill(0);
+    else fill(120);
     textSize(16);
     text(this.txt, this.pos.x, this.pos.y);
     pop();
@@ -232,9 +242,7 @@ class TrailPoint {
     this.size -= 0.08;
   }
 
-  isDead() {
-    return this.alpha <= 0 || this.size <= 0;
-  }
+  isDead() { return this.alpha <= 0 || this.size <= 0; }
 
   display() {
     noStroke();
