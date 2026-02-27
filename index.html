@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yifan Xia | Designer & Strategist</title>
+    <title>Yifan Xia | Creative Resume</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background-color: #ffffff; cursor: grab; }
@@ -15,33 +15,31 @@
 
 <script>
 /**
- * YIFAN XIA - REFINED INTERACTIVE RESUME
- * Clean, trail-free, and fully draggable.
+ * YIFAN XIA - THE DEFINITIVE INTERACTIVE RESUME
+ * [cite: 1] YIFAN XIA
+ *  Vanderbilt University | Parsons | CSM
  */
 
 let particles = [];
 let nodes = [];
-const palette = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
+let mouseTrail = [];
+let colorIndex = 0;
+const palette = ['#4285F4', '#EA4335', '#FBBC05', '#34A853']; // Google Brand Colors
 const phrases = [
-  'Parsons BFA', 
-  'Central Saint Martins', 
-  'Vanderbilt MMark', 
-  '3 languages', 
-  '47% growth in 20 days', 
-  'motion graphics', 
-  'brand identity', 
-  'maker + strategist'
+  'Parsons BFA', 'Central Saint Martins', 'Vanderbilt MMark', 
+  '3 languages', '47% growth in 20 days', 'motion graphics', 
+  'brand identity', 'maker + strategist'
 ];
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   
-  // Create background drift particles (Size 4-10)
+  // Create background drift particles
   for (let i = 0; i < 40; i++) {
     particles.push(new Particle());
   }
   
-  // Initialize draggable phrases
+  // Initialize draggable phrases 
   for (let i = 0; i < phrases.length; i++) {
     nodes.push(new FloatingNode(phrases[i]));
   }
@@ -50,21 +48,36 @@ function setup() {
 }
 
 function draw() {
-  background(255); // Absolute white background every frame
+  background(255); // Solid white every frame to prevent blur
 
-  // 1. Background Particles
+  // 1. Manage Mouse Trail (Max 30 points)
+  if (mouseX !== pmouseX || mouseY !== pmouseY) {
+    let activeColor = palette[colorIndex % palette.length];
+    mouseTrail.push(new TrailPoint(mouseX, mouseY, activeColor));
+    colorIndex++;
+  }
+
+  for (let i = mouseTrail.length - 1; i >= 0; i--) {
+    mouseTrail[i].update();
+    mouseTrail[i].display();
+    if (mouseTrail[i].isDead() || mouseTrail.length > 30) {
+      mouseTrail.splice(i, 1);
+    }
+  }
+
+  // 2. Background Particles
   particles.forEach(p => {
     p.update();
     p.display();
   });
   
-  // 2. Interactive Text Nodes
+  // 3. Draggable Resume Nodes
   nodes.forEach(n => {
     n.update();
     n.display();
   });
 
-  // 3. Static Center Header
+  // 4. Identity Header [cite: 1]
   drawIdentity();
 }
 
@@ -84,9 +97,8 @@ function drawIdentity() {
   pop();
 }
 
-// Fixed hitbox dragging logic
+// Fixed hitbox dragging
 function mousePressed() {
-  // Check from top to bottom (last drawn to first)
   for (let i = nodes.length - 1; i >= 0; i--) {
     if (nodes[i].isMouseOver()) {
       nodes[i].dragging = true;
@@ -104,10 +116,10 @@ function mouseReleased() {
 class Particle {
   constructor() {
     this.pos = createVector(random(width), random(height));
-    this.vel = createVector(random(-0.12, 0.12), random(-0.12, 0.12));
+    this.vel = createVector(random(-0.1, 0.1), random(-0.1, 0.1));
     this.size = random(4, 10); 
     this.color = color(random(palette));
-    this.color.setAlpha(90);
+    this.color.setAlpha(80);
   }
 
   update() {
@@ -132,7 +144,7 @@ class FloatingNode {
     this.dragging = false;
     this.offsetX = 0;
     this.offsetY = 0;
-    this.hitboxW = 120; // Fixed 120px hitbox as requested
+    this.hitboxW = 120; // 120px hitbox
     this.hitboxH = 40; 
   }
 
@@ -147,10 +159,9 @@ class FloatingNode {
       this.pos.y = mouseY + this.offsetY;
     } else {
       let n = noise(this.noiseOffset + frameCount * 0.001);
-      this.pos.x += map(n, 0, 1, -0.1, 0.1);
+      this.pos.x += map(n, 0, 1, -0.08, 0.08);
       this.pos.add(this.vel);
       
-      // Gentle screen wrap
       if (this.pos.x < -150) this.pos.x = width + 150;
       if (this.pos.x > width + 150) this.pos.x = -150;
       if (this.pos.y < -50) this.pos.y = height + 50;
@@ -162,18 +173,38 @@ class FloatingNode {
     push();
     textAlign(CENTER, CENTER);
     noStroke();
-    
-    if (this.dragging) {
-      fill(palette[0]); // Bright Google Blue when held
-    } else if (this.isMouseOver()) {
-      fill(0); // Sharp black on hover
-    } else {
-      fill(110); // Calm grey for drift
-    }
-    
+    if (this.dragging) fill(palette[0]);
+    else if (this.isMouseOver()) fill(0);
+    else fill(110);
     textSize(16);
     text(this.txt, this.pos.x, this.pos.y);
     pop();
+  }
+}
+
+class TrailPoint {
+  constructor(x, y, col) {
+    this.pos = createVector(x, y);
+    this.baseColor = color(col);
+    this.alpha = 255;
+    this.size = 4; // 4px size
+  }
+
+  update() {
+    this.alpha -= 8; // Fade
+    this.size -= 0.1; // Shrink
+  }
+
+  isDead() {
+    return this.alpha <= 0 || this.size <= 0;
+  }
+
+  display() {
+    noStroke();
+    let c = this.baseColor;
+    c.setAlpha(this.alpha);
+    fill(c);
+    ellipse(this.pos.x, this.pos.y, this.size);
   }
 }
 
