@@ -18,7 +18,6 @@
             top: 0;
             left: 0;
         }
-
         #contact-link {
             position: absolute;
             bottom: 40px;
@@ -31,11 +30,9 @@
             text-transform: uppercase;
             transition: color 0.3s ease;
             z-index: 999; 
-            /* This remains clickable because canvas will have pointer-events: none */
+            pointer-events: auto; 
         }
-        #contact-link:hover {
-            color: #4285F4; 
-        }
+        #contact-link:hover { color: #4285F4; }
     </style>
 </head>
 <body>
@@ -44,13 +41,13 @@
 
 <script>
 /**
- * YIFAN XIA - FINAL VERSION
- * Transparent interaction layer with pointer-pass-through for HTML links.
+ * YIFAN XIA - DEFINITIVE EDITION WITH CLICK BURSTS
  */
 
-let particles = [];
+let driftParticles = [];
 let nodes = [];
 let mouseTrail = [];
+let clickBursts = []; // Array for click feedback
 let colorIndex = 0;
 const palette = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
 const phrases = [
@@ -65,12 +62,10 @@ const phrases = [
 
 function setup() {
   let canvas = createCanvas(windowWidth, windowHeight);
-  
-  // Pass clicks through canvas to the HTML link underneath
   canvas.elt.style.pointerEvents = 'none';
 
   for (let i = 0; i < 40; i++) {
-    particles.push(new Particle());
+    driftParticles.push(new DriftParticle());
   }
   
   for (let i = 0; i < phrases.length; i++) {
@@ -85,26 +80,24 @@ function draw() {
 
   handleCursorStyling();
 
-  // Mouse Trail logic
+  // 1. Mouse Trail (Passive movement)
   if (mouseX !== pmouseX || mouseY !== pmouseY) {
     let activeColor = palette[colorIndex % palette.length];
     mouseTrail.push(new TrailPoint(mouseX, mouseY, activeColor));
     colorIndex++;
   }
+  updateAndDisplay(mouseTrail, 30);
 
-  for (let i = mouseTrail.length - 1; i >= 0; i--) {
-    mouseTrail[i].update();
-    mouseTrail[i].display();
-    if (mouseTrail[i].isDead() || mouseTrail.length > 30) {
-      mouseTrail.splice(i, 1);
-    }
-  }
+  // 2. Click Bursts (Active feedback)
+  updateAndDisplay(clickBursts, 100);
 
-  particles.forEach(p => {
+  // 3. Background Drift
+  driftParticles.forEach(p => {
     p.update();
     p.display();
   });
   
+  // 4. Draggable Resume Nodes
   nodes.forEach(n => {
     n.update();
     n.display();
@@ -113,19 +106,26 @@ function draw() {
   drawIdentity();
 }
 
+// Utility to handle temporary arrays
+function updateAndDisplay(arr, max) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    arr[i].update();
+    arr[i].display();
+    if (arr[i].isDead() || arr.length > max) {
+      arr.splice(i, 1);
+    }
+  }
+}
+
 function handleCursorStyling() {
   let overCenter = (mouseX > width/2 - 150 && mouseX < width/2 + 150 &&
                     mouseY > height/2 - 40 && mouseY < height/2 + 40);
   
   let overNode = false;
   for (let n of nodes) {
-    if (n.isMouseOver()) {
-      overNode = true;
-      break;
-    }
+    if (n.isMouseOver()) { overNode = true; break; }
   }
 
-  // Note: Since pointer-events: none is on the canvas, we set cursor on the body
   if (overCenter) {
     document.body.style.cursor = 'default';
   } else if (overNode || mouseIsPressed) {
@@ -143,7 +143,6 @@ function drawIdentity() {
   textSize(32);
   textStyle(BOLD);
   text("YIFAN XIA", width / 2, height / 2 - 15);
-  
   fill(160);
   textSize(13);
   textStyle(NORMAL);
@@ -152,12 +151,22 @@ function drawIdentity() {
 }
 
 function mousePressed() {
+  let hitAny = false;
   for (let i = nodes.length - 1; i >= 0; i--) {
     if (nodes[i].isMouseOver()) {
       nodes[i].dragging = true;
       nodes[i].offsetX = nodes[i].pos.x - mouseX;
       nodes[i].offsetY = nodes[i].pos.y - mouseY;
+      hitAny = true;
       break; 
+    }
+  }
+
+  // If clicked on canvas background, spawn burst
+  if (!hitAny) {
+    for (let i = 0; i < 8; i++) {
+      let col = palette[Math.floor(random(palette.length))];
+      clickBursts.push(new BurstParticle(mouseX, mouseY, col));
     }
   }
 }
@@ -166,7 +175,7 @@ function mouseReleased() {
   nodes.forEach(n => n.dragging = false);
 }
 
-class Particle {
+class DriftParticle {
   constructor() {
     this.pos = createVector(random(width), random(height));
     this.vel = createVector(random(-0.1, 0.1), random(-0.1, 0.1));
@@ -174,13 +183,11 @@ class Particle {
     this.color = color(random(palette));
     this.color.setAlpha(70);
   }
-
   update() {
     this.pos.add(this.vel);
     if (this.pos.x < 0 || this.pos.x > width) this.vel.x *= -1;
     if (this.pos.y < 0 || this.pos.y > height) this.vel.y *= -1;
   }
-
   display() {
     noStroke();
     fill(this.color);
@@ -195,17 +202,13 @@ class FloatingNode {
     this.vel = createVector(random(-0.05, 0.05), random(-0.05, 0.05));
     this.noiseOffset = random(1000);
     this.dragging = false;
-    this.offsetX = 0;
-    this.offsetY = 0;
     this.hitboxW = 120; 
     this.hitboxH = 40; 
   }
-
   isMouseOver() {
     return (mouseX > this.pos.x - this.hitboxW/2 && mouseX < this.pos.x + this.hitboxW/2 &&
             mouseY > this.pos.y - this.hitboxH/2 && mouseY < this.pos.y + this.hitboxH/2);
   }
-
   update() {
     if (this.dragging) {
       this.pos.x = mouseX + this.offsetX;
@@ -214,14 +217,12 @@ class FloatingNode {
       let n = noise(this.noiseOffset + frameCount * 0.001);
       this.pos.x += map(n, 0, 1, -0.07, 0.07);
       this.pos.add(this.vel);
-      
       if (this.pos.x < -100) this.pos.x = width + 100;
       if (this.pos.x > width + 100) this.pos.x = -100;
       if (this.pos.y < -50) this.pos.y = height + 50;
       if (this.pos.y > height + 50) this.pos.y = -50;
     }
   }
-
   display() {
     push();
     textAlign(CENTER, CENTER);
@@ -242,14 +243,8 @@ class TrailPoint {
     this.alpha = 200;
     this.size = 4;
   }
-
-  update() {
-    this.alpha -= 6;
-    this.size -= 0.08;
-  }
-
+  update() { this.alpha -= 6; this.size -= 0.08; }
   isDead() { return this.alpha <= 0 || this.size <= 0; }
-
   display() {
     noStroke();
     let c = this.baseColor;
@@ -259,9 +254,31 @@ class TrailPoint {
   }
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+class BurstParticle {
+  constructor(x, y, col) {
+    this.pos = createVector(x, y);
+    this.vel = p5.Vector.random2D().mult(random(2, 5)); // Explode outward
+    this.baseColor = color(col);
+    this.alpha = 255;
+    this.size = random(3, 6);
+  }
+  update() {
+    this.pos.add(this.vel);
+    this.vel.mult(0.95); // Friction/Slow down
+    this.alpha -= 10; // Rapid fade (~0.5s)
+    this.size -= 0.15;
+  }
+  isDead() { return this.alpha <= 0 || this.size <= 0; }
+  display() {
+    noStroke();
+    let c = this.baseColor;
+    c.setAlpha(this.alpha);
+    fill(c);
+    ellipse(this.pos.x, this.pos.y, this.size);
+  }
 }
+
+function windowResized() { resizeCanvas(windowWidth, windowHeight); }
 </script>
 
 </body>
